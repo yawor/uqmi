@@ -635,11 +635,11 @@ cmd_wds_get_current_settings_cb(struct qmi_dev *qmi, struct qmi_request *req, st
 
 	blobmsg_close_table(&status, v6);
 
-	d = blobmsg_open_table(&status, "domain-names");
+	d = blobmsg_open_array(&status, "domain-names");
 	for (i = 0; i < res.data.domain_name_list_n; i++) {
 		blobmsg_add_string(&status, NULL, res.data.domain_name_list[i]);
 	}
-	blobmsg_close_table(&status, d);
+	blobmsg_close_array(&status, d);
 
 	blobmsg_close_table(&status, t);
 }

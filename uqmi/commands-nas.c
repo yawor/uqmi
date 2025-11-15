@@ -821,7 +821,7 @@ static void
 cmd_nas_get_cell_location_info_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
 {
 	struct qmi_nas_get_cell_location_info_response res;
-	void *c = NULL, *t, *cell, *freq;
+	void *c = NULL, *t, *a, *cell, *freq;
 	int i, j;
 
 	qmi_parse_nas_get_cell_location_info_response(msg, &res);
@@ -837,6 +837,7 @@ cmd_nas_get_cell_location_info_cb(struct qmi_dev *qmi, struct qmi_request *req, 
 				res.data.umts_info_v2.primary_scrambling_code);
 		blobmsg_add_u32(&status, "rscp", res.data.umts_info_v2.rscp);
 		blobmsg_add_u32(&status, "ecio", res.data.umts_info_v2.ecio);
+		a = blobmsg_open_array(&status, "cells");
 		for (j = 0; j < res.data.umts_info_v2.cell_n; j++) {
 			cell = blobmsg_open_table(&status, NULL);
 			blobmsg_add_u32(&status, "channel",
@@ -847,8 +848,10 @@ cmd_nas_get_cell_location_info_cb(struct qmi_dev *qmi, struct qmi_request *req, 
 			blobmsg_add_u32(&status, "ecio", res.data.umts_info_v2.cell[j].ecio);
 			blobmsg_close_table(&status, cell);
 		}
+		blobmsg_close_array(&status, a);
+		a = blobmsg_open_array(&status, "neighboring_geran");
 		for (j = 0; j < res.data.umts_info_v2.neighboring_geran_n; j++) {
-			cell = blobmsg_open_table(&status, "neighboring_geran");
+			cell = blobmsg_open_table(&status, NULL);
 			blobmsg_add_u32(&status, "channel",
 					res.data.umts_info_v2.neighboring_geran[j].geran_absolute_rf_channel_number);
 			blobmsg_add_u8(&status, "network_color_code",
@@ -859,6 +862,7 @@ cmd_nas_get_cell_location_info_cb(struct qmi_dev *qmi, struct qmi_request *req, 
 					res.data.umts_info_v2.neighboring_geran[j].rssi);
 			blobmsg_close_table(&status, cell);
 		}
+		blobmsg_close_array(&status, a);
 		blobmsg_close_table(&status, c);
 	}
 	if (res.set.intrafrequency_lte_info_v2) {
@@ -884,6 +888,7 @@ cmd_nas_get_cell_location_info_cb(struct qmi_dev *qmi, struct qmi_request *req, 
 			blobmsg_add_u32(&status, "s_intra_search_threshold",
 					res.data.intrafrequency_lte_info_v2.s_intra_search_threshold);
 		}
+		a = blobmsg_open_array(&status, "cells");
 		for (i = 0; i < res.data.intrafrequency_lte_info_v2.cell_n; i++) {
 			cell = blobmsg_open_table(&status, NULL);
 			print_lte_info(res.data.intrafrequency_lte_info_v2.cell[i].physical_cell_id,
@@ -895,11 +900,12 @@ cmd_nas_get_cell_location_info_cb(struct qmi_dev *qmi, struct qmi_request *req, 
 						res.data.intrafrequency_lte_info_v2.cell[i].cell_selection_rx_level);
 			blobmsg_close_table(&status, cell);
 		}
+		blobmsg_close_array(&status, a);
 		blobmsg_close_table(&status, c);
 	}
 	if (res.set.interfrequency_lte_info) {
 		if (res.data.interfrequency_lte_info.frequency_n > 0)
-			c = blobmsg_open_table(&status, "interfrequency_lte_info");
+			c = blobmsg_open_array(&status, "interfrequency_lte_info");
 		for (i = 0; i < res.data.interfrequency_lte_info.frequency_n; i++) {
 			freq = blobmsg_open_table(&status, NULL);
 			blobmsg_add_u32(&status, "channel",
@@ -910,6 +916,7 @@ cmd_nas_get_cell_location_info_cb(struct qmi_dev *qmi, struct qmi_request *req, 
 					       res.data.interfrequency_lte_info.frequency[i].cell_selection_rx_level_high_threshold,
 					       res.data.interfrequency_lte_info.frequency[i].cell_selection_rx_level_low_threshold);
 			}
+			a = blobmsg_open_array(&status, "cells");
 			for (j = 0; j < res.data.interfrequency_lte_info.frequency[i].cell_n; j++) {
 				cell = blobmsg_open_table(&status, NULL);
 				print_lte_info(res.data.interfrequency_lte_info.frequency[i].cell[j].physical_cell_id,
@@ -921,14 +928,15 @@ cmd_nas_get_cell_location_info_cb(struct qmi_dev *qmi, struct qmi_request *req, 
 							res.data.interfrequency_lte_info.frequency[i].cell[j].cell_selection_rx_level);
 				blobmsg_close_table(&status, cell);
 			}
+			blobmsg_close_array(&status, a);
 			blobmsg_close_table(&status, freq);
 		}
 		if (res.data.interfrequency_lte_info.frequency_n > 0)
-			blobmsg_close_table(&status, c);
+			blobmsg_close_array(&status, c);
 	}
 	if (res.set.lte_info_neighboring_gsm) {
 		if (res.data.lte_info_neighboring_gsm.frequency_n > 0)
-			c = blobmsg_open_table(&status, "lte_info_neighboring_gsm");
+			c = blobmsg_open_array(&status, "lte_info_neighboring_gsm");
 		for (i = 0; i < res.data.lte_info_neighboring_gsm.frequency_n; i++) {
 			freq = blobmsg_open_table(&status, NULL);
 			blobmsg_add_u32(&status, "ncc_permitted",
@@ -938,6 +946,7 @@ cmd_nas_get_cell_location_info_cb(struct qmi_dev *qmi, struct qmi_request *req, 
 					       res.data.lte_info_neighboring_gsm.frequency[i].cell_reselection_high_threshold,
 					       res.data.lte_info_neighboring_gsm.frequency[i].cell_reselection_low_threshold);
 			}
+			a = blobmsg_open_array(&status, "cells");
 			for (j = 0; j < res.data.lte_info_neighboring_gsm.frequency[i].cell_n; j++) {
 				cell = blobmsg_open_table(&status, NULL);
 				blobmsg_add_u32(&status, "channel",
@@ -951,14 +960,15 @@ cmd_nas_get_cell_location_info_cb(struct qmi_dev *qmi, struct qmi_request *req, 
 							res.data.lte_info_neighboring_gsm.frequency[i].cell[j].cell_selection_rx_level);
 				blobmsg_close_table(&status, cell);
 			}
+			blobmsg_close_array(&status, a);
 			blobmsg_close_table(&status, freq);
 		}
 		if (res.data.lte_info_neighboring_gsm.frequency_n > 0)
-			blobmsg_close_table(&status, c);
+			blobmsg_close_array(&status, c);
 	}
 	if (res.set.lte_info_neighboring_wcdma) {
 		if (res.data.lte_info_neighboring_wcdma.frequency_n > 0)
-			c = blobmsg_open_table(&status, "lte_info_neighboring_wcdma");
+			c = blobmsg_open_array(&status, "lte_info_neighboring_wcdma");
 		for (i = 0; i < res.data.lte_info_neighboring_wcdma.frequency_n; i++) {
 			freq = blobmsg_open_table(&status, NULL);
 			blobmsg_add_u32(&status, "channel",
@@ -968,6 +978,7 @@ cmd_nas_get_cell_location_info_cb(struct qmi_dev *qmi, struct qmi_request *req, 
 					       res.data.lte_info_neighboring_wcdma.frequency[i].cell_reselection_high_threshold,
 					       res.data.lte_info_neighboring_wcdma.frequency[i].cell_reselection_low_threshold);
 			}
+			a = blobmsg_open_array(&status, "cells");
 			for (j = 0; j < res.data.lte_info_neighboring_wcdma.frequency[i].cell_n; j++) {
 				cell = blobmsg_open_table(&status, NULL);
 				blobmsg_add_u32(&status, "primary_scrambling_code",
@@ -981,14 +992,15 @@ cmd_nas_get_cell_location_info_cb(struct qmi_dev *qmi, struct qmi_request *req, 
 							res.data.lte_info_neighboring_wcdma.frequency[i].cell[j].cell_selection_rx_level);
 				blobmsg_close_table(&status, cell);
 			}
+			blobmsg_close_array(&status, a);
 			blobmsg_close_table(&status, freq);
 		}
 		if (res.data.lte_info_neighboring_wcdma.frequency_n > 0)
-			blobmsg_close_table(&status, c);
+			blobmsg_close_array(&status, c);
 	}
 	if (res.set.umts_info_neighboring_lte) {
 		if (res.data.umts_info_neighboring_lte.frequency_n > 0)
-			c = blobmsg_open_table(&status, "umts_info_neighboring_lte");
+			c = blobmsg_open_array(&status, "umts_info_neighboring_lte");
 		for (i = 0; i < res.data.umts_info_neighboring_lte.frequency_n; i++) {
 			freq = blobmsg_open_table(&status, NULL);
 			blobmsg_add_u32(&status, "channel",
@@ -1005,7 +1017,7 @@ cmd_nas_get_cell_location_info_cb(struct qmi_dev *qmi, struct qmi_request *req, 
 			blobmsg_close_table(&status, freq);
 		}
 		if (res.data.umts_info_neighboring_lte.frequency_n > 0)
-			blobmsg_close_table(&status, c);
+			blobmsg_close_array(&status, c);
 	}
 	if (res.set.nr5g_cell_information) {
 		c = blobmsg_open_table(&status, "nr5g_cell_information");

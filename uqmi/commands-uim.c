@@ -26,6 +26,46 @@ static int channel_id = -1;
 static uint8_t aid[16];
 static uint8_t apdu[1024];
 
+static int
+uqmi_uim_file_path_parse(char *arg, uint16_t *file_id, uint8_t *file_path, unsigned int *file_path_n)
+{
+	char *s, *ptr, *token, *err;
+	unsigned int max_path_n = *file_path_n;
+	unsigned long value;
+	int i;
+
+	for (i = 0, s = arg; ; i++, s = NULL) {
+		token = strtok_r(s, ",", &ptr);
+		if (token == NULL) {
+			*file_path_n = (i - 1) * 2;
+			break;
+		}
+
+		if (i > max_path_n / 2) {
+			// Path is too long
+			uqmi_add_error("Invalid PATH argument");
+			return -1;
+		}
+
+		if (i > 0) {
+			file_path[(i - 1) * 2] = *file_id & 0xFF;
+			file_path[(i - 1) * 2 + 1] = (*file_id >> 8) & 0xFF;
+		}
+
+		value = strtoul(token, &err, 0);
+
+		if ((err && *err) || value < 0 || value > 0xFFFF) {
+			// Invalid path part value
+			uqmi_add_error("Invalid PATH argument");
+			return -1;
+		}
+
+		*file_id = value & 0xFFFF;
+	}
+
+	return 0;
+}
+
 #define cmd_uim_verify_pin1_cb no_cb
 static enum qmi_cmd_result
 cmd_uim_verify_pin1_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
@@ -319,5 +359,58 @@ cmd_uim_send_apdu_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct q
 	}
 
 	qmi_set_uim_send_apdu_request(msg, &data);
+	return QMI_CMD_REQUEST;
+}
+
+static void cmd_uim_read_transparent_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
+{
+	struct qmi_uim_read_transparent_response res;
+	void *c, *a;
+
+	qmi_parse_uim_read_transparent_response(msg, &res);
+
+	c = blobmsg_open_table(&status, NULL);
+	if (res.data.card_result) {
+		blobmsg_add_u32(&status, "sw1", res.data.card_result.sw1);
+		blobmsg_add_u32(&status, "sw2", res.data.card_result.sw2);
+	}
+	a = blobmsg_open_array(&status, "read");
+	for (int i = 0; i < res.data.read_result_n; i++) {
+		blobmsg_add_u32(&status, NULL, res.data.read_result[i]);
+	}
+	blobmsg_close_array(&status, a);
+	blobmsg_close_table(&status, c);
+}
+
+static enum qmi_cmd_result
+cmd_uim_read_transparent_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	uint16_t file_id = 0;
+	unsigned int file_path_n = 10;
+	uint8_t file_path[file_path_n];
+
+	memset(file_path, 0, file_path_n * sizeof(uint8_t));
+
+	if (uqmi_uim_file_path_parse(arg, &file_id, file_path, &file_path_n) < 0) {
+		return QMI_CMD_EXIT;
+	}
+
+	struct qmi_uim_read_transparent_request data = {
+		QMI_INIT_SEQUENCE(session,
+			.session_type = QMI_UIM_SESSION_TYPE_PRIMARY_GW_PROVISIONING,
+			.application_identifier_n = 0
+		),
+		QMI_INIT_SEQUENCE(file,
+			.file_id = file_id,
+			.file_path_n = file_path_n,
+			.file_path = file_path
+		),
+		QMI_INIT_SEQUENCE(read_information,
+			.offset = 0,
+			.length = 0
+		)
+	};
+
+	qmi_set_uim_read_transparent_request(msg, &data);
 	return QMI_CMD_REQUEST;
 }

@@ -29,7 +29,8 @@
 	__uqmi_command(uim_channel_id, uim-channel-id, required, CMD_TYPE_OPTION), \
 	__uqmi_command(uim_open_logical_channel, uim-channel-open, required, QMI_SERVICE_UIM), \
 	__uqmi_command(uim_close_logical_channel, uim-channel-close, no, QMI_SERVICE_UIM), \
-	__uqmi_command(uim_send_apdu, uim-apdu-send, required, QMI_SERVICE_UIM) \
+	__uqmi_command(uim_send_apdu, uim-apdu-send, required, QMI_SERVICE_UIM), \
+	__uqmi_command(uim_read_transparent, uim-read-transparent, required, QMI_SERVICE_UIM) \
 
 
 #define uim_helptext \
@@ -48,4 +49,5 @@
 		"  --uim-apdu-send <cmd>:            Send APDU command to ICC\n" \
 		"    --uim-slot:                     SIM slot [1-2]\n" \
 		"    --uim-channel-id:               Channel-id\n" \
+		"  --uim-read-transparent <PATH>     Read a transparent file from PATH\n" \
 

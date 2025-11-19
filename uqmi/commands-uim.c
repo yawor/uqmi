@@ -370,7 +370,7 @@ static void cmd_uim_read_transparent_cb(struct qmi_dev *qmi, struct qmi_request 
 	qmi_parse_uim_read_transparent_response(msg, &res);
 
 	c = blobmsg_open_table(&status, NULL);
-	if (res.data.card_result) {
+	if (res.set.card_result) {
 		blobmsg_add_u32(&status, "sw1", res.data.card_result.sw1);
 		blobmsg_add_u32(&status, "sw2", res.data.card_result.sw2);
 	}

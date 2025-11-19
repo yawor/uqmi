@@ -341,6 +341,8 @@ cmd_nas_get_signal_info_cb(struct qmi_dev *qmi, struct qmi_request *req, struct 
 		blobmsg_add_string(&status, "type", "wcdma");
 		blobmsg_add_u32(&status, "rssi", (int32_t) res.data.wcdma_signal_strength.rssi);
 		blobmsg_add_u32(&status, "ecio", (int32_t) res.data.wcdma_signal_strength.ecio);
+		if (res.set.wcdma_rscp)
+			blobmsg_add_u32(&status, "rscp", (int32_t) -res.data.wcdma_rscp);
 	}
 
 	if (res.set.lte_signal_strength) {
